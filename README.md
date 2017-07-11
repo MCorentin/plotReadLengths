@@ -8,7 +8,11 @@ Can be used to get the distribution of Pacbio Reads
 
 ## Tests
 
-python plotReadLengths.py -g <genomeSize> -f <sequences.fasta> -o <outputDir> -b <binSize in percentage of the longest read>
+To run with a fasta file:
+  python plotReadLengths.py -g <genomeSize> -f <sequences.fasta> -o <outputDir> -b <binSize in percentage of the longest read>
+
+After the first run, a file called <sequence.fasta>\_lengthsFile.txt is created so you can run it again more quickly if you want to try a different bin size:
+  python plotReadLengths.py -g <genomeSize> -l <sequences.fasta_lengthsFile.txt> -o <outputDir> -b <binSize in percentage of the longest read>
 
 ![alt text](https://raw.githubusercontent.com/MCorentin/plotReadLengths/master/image.png)
 
