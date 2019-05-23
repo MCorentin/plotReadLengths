@@ -37,6 +37,56 @@ def usage():
 	print("	-h: print the help and exit")
 
 
+def get_lengths_from_fasta(fasta, verbose):
+	"""
+	Use awk to get the sequence lengths in a fasta file
+	"""
+	cmd = ["awk", '/^>/ {if (seqlen){print seqlen};seqlen=0;next; } { seqlen += length($0)}END{print seqlen}', fasta]
+	if(verbose == 1):
+		print("Calculating the sequences length for the fasta...")
+		print(" ".join(cmd))
+	awk_process = Popen(cmd, shell = False, stdout=PIPE)
+	lengths = awk_process.communicate()[0]
+	# Popen is outputing bytes, so we use "decode()" to change it to string
+	lengths_decoded = lengths.decode()
+	return(lengths_decoded)
+
+
+def get_coverage(readLengths, expectedGenomeSize, verbose):
+	"""
+	Return the coverage from readLengths and expectedGenomeSize
+	"""
+	cov = int(sum(readLengths) / expectedGenomeSize)
+	if(verbose == 1):
+		print("Coverage " + str(cov) + " X")
+	return(cov)
+
+
+def create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbose):
+	"""
+	Create the plot object
+	"""
+	# Plotting options 
+	plt.figure(figsize=(15,8), facecolor='white')
+
+	plt.xlim([0, max(readLengths)+1])
+	#plt.xticks(bins)
+	plt.xlabel('Read Length')
+	plt.ylabel('Number of Reads')
+
+	plt.hist(readLengths, bins=bins, alpha=0.5, facecolor='green')
+
+	#  Get coverage as a string to print in the graph's title
+	if(expectedGenomeSize != None):
+		cov = get_coverage(readLengths, expectedGenomeSize, verbose)
+		plt.title(" Coverage: " + str(cov) + " X (for genome size of " + str(expectedGenomeSize) + " bp)", fontsize = 16)
+		
+	plt.suptitle("Read Length Distribution for " + outputName, fontsize = 12)
+
+	return(plt)
+
+
+
 
 #===================================
 #	 			Main
@@ -94,15 +144,7 @@ if(percent == None):
 
 # If there is no file with lengths available, we use the fasta (slower)
 if lengthsFile == None:
-	# Command to get reads length :
-	cmd = ["awk", '/^>/ {if (seqlen){print seqlen};seqlen=0;next; } { seqlen += length($0)}END{print seqlen}', fasta]
-	if(verbose == 1):
-		print("Calculating the sequences length for the fasta...")
-		print(" ".join(cmd))
-	awk_process = Popen(cmd, shell = False, stdout=PIPE)
-	lengths, stderr = awk_process.communicate()
-	# Popen is outputing bytes, so we use "decode()" to change it to string
-	lengths_decoded = lengths.decode()
+	lengths_decoded = get_lengths_from_fasta(fasta, verbose)
 
 	# Create the lengths file for potential future runs
 	filename = os.path.basename(fasta) + "_lengthsFile.txt"
@@ -134,39 +176,22 @@ maxRead = max(readLengths)
 if(verbose == 1):
 	print("Longest Read = " + str(maxRead))
 
-#  Get coverage as a string to print in the graph's title
-if(expectedGenomeSize != None):
-	cov = int(sum(readLengths) / expectedGenomeSize)
-	if(verbose == 1):
-		print("Coverage " + str(cov) + " X")
-
-
 # Bin size is percent% of Longest Read:
 # Allows for the same bin size for each distributions
 p = percent / (100 * 1.0)
-print("percent : " + str(p))
+if(verbose == 1):
+	print("percent : " + str(p))
 if(p*maxRead == 0):
 	binSize = 1000
 else:
 	binSize = int(p * maxRead)
 
 # Setting the bin size
-print("Bin size = " + str(binSize))
+if(verbose == 1):
+	print("Bin size = " + str(binSize))
 bins = np.arange(0, maxRead+1, binSize)
 
-# Plotting options 
-plt.figure(figsize=(15,8), facecolor='white')
-
-plt.xlim([0, maxRead+1])
-#plt.xticks(bins)
-plt.xlabel('Read Length')
-plt.ylabel('Number of Reads')
-
-plt.hist(readLengths, bins=bins, alpha=0.5, facecolor='green')
-
-if(expectedGenomeSize != None):
-	plt.suptitle("Read Lengths Distribution (Coverage " + str(cov) + " X)", fontsize = 16)
-plt.title(outputName, fontsize = 12)
+plt = create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbose)
 
 # Saving file to pdf
 GraphFile = outputDir + "/" + outputName + "_readLengths.pdf"
