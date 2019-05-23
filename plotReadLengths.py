@@ -20,18 +20,18 @@ verbose = 0
 #===================================
 def usage():
 	"""
-	Prints the usage and help 
+	Print the usage and help 
 	"""
-	print("\npython plotReadLengths.py -f [sequences.fasta] -b [numberOfBins] -g [estimatedGenomeSize] -o [outputDirectory]")
+	print("\npython plotReadLengths.py -f [sequences.fasta] -b [binGranularity] -g [estimatedGenomeSize] -o [outputDirectory] -v")
 	print("")
 	print("Input:")
-	print("	-f: the input fasta file")
-	print("	-l: a length file, is created by this script. Can be used to run the script again more quickly.")
+	print("	-f: an input fasta file")
+	print("	-l: a length file, which is created by this script. Can be used to run the script again, more quickly.")
 	print('		/!\ If both -f and -l are specified, -l will have the priority.')
 	print("	-g: the estimated genome size, will be used to compute the coverage. Optional")
-	print("	-b: the number of bins on the plot. Default: 20")
+	print("	-b: bin size based on the percentage of the longest sequence. Default: 5")
 	print("Output:")
-	print("	-o: the output director. Default to " + outputDir)
+	print("	-o: the output directory, should already exist. Default to " + outputDir)
 	print("Other:")
 	print("	-v: verbose mode.")
 	print("	-h: print the help and exit")
@@ -79,9 +79,9 @@ def create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbo
 	#  Get coverage as a string to print in the graph's title
 	if(expectedGenomeSize != None):
 		cov = get_coverage(readLengths, expectedGenomeSize, verbose)
-		plt.title(" Coverage: " + str(cov) + " X (for genome size of " + str(expectedGenomeSize) + " bp)", fontsize = 16)
+		plt.title(" Coverage: " + str(cov) + " X (for genome size of " + str(expectedGenomeSize) + " bp)", fontsize = 12)
 		
-	plt.suptitle("Read Length Distribution for " + outputName, fontsize = 12)
+	plt.suptitle("Read Length Distribution for " + outputName, fontsize = 14)
 
 	return(plt)
 
@@ -93,7 +93,7 @@ def create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbo
 #===================================
 # Getting the parameters from getopt
 try:
-	opts, args = getopt.getopt(sys.argv[1:], "ho:f:l:g:b:v", ["help", "output=", "fasta=", "lengthsFile=", "genomeEstimate=", "binNumber=", "verbose="])
+	opts, args = getopt.getopt(sys.argv[1:], "ho:f:l:g:b:v", ["help", "output=", "fasta=", "lengthsFile=", "genomeEstimate=", "binGranularity=", "verbose="])
 except getopt.GetoptError as err:
 	print(str(err))  # will print "option -a not recognized"
 	usage()
@@ -104,8 +104,8 @@ for o, a in opts:
 		fasta = a
 	elif o in ("-g", "--genomeSize"):
 		expectedGenomeSize = int(a)
-	elif o in ("-b", "--binNumber"):
-		percent = int(a)
+	elif o in ("-b", "--binGranularity"):
+		percent = float(a)
 	elif o in ("-o", "--output"):
 		outputDir = a
 	elif o in ("-l", "--output"):
@@ -137,17 +137,21 @@ if(not(os.path.isdir(outputDir))):
 	sys.exit()
 
 if(percent == None):
-	percent = 20
+	percent = 5
 	if(verbose == 1):
 		print("Defaulting bin size to " + str(percent) + "% of Longest Read.\n")
-
+else:
+	if(percent <= 0 or percent > 100):
+		print("-b / --binGranularity should be > 0 and <= 100")
+		usage()
+		sys.exit()
 
 # If there is no file with lengths available, we use the fasta (slower)
 if lengthsFile == None:
 	lengths_decoded = get_lengths_from_fasta(fasta, verbose)
 
 	# Create the lengths file for potential future runs
-	filename = os.path.basename(fasta) + "_lengthsFile.txt"
+	filename = outputDir + "/" + os.path.basename(fasta) + "_lengthsFile.txt"
 	if(verbose == 1):
 		print("Writing lengths to: " + filename + "...")
 	with open(filename, "w") as len_file_writer:
@@ -180,7 +184,7 @@ if(verbose == 1):
 # Allows for the same bin size for each distributions
 p = percent / (100 * 1.0)
 if(verbose == 1):
-	print("percent : " + str(p))
+	print("Bin granularity : " + str(percent) + "% of longest read")
 if(p*maxRead == 0):
 	binSize = 1000
 else:

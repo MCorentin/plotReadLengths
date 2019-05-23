@@ -10,7 +10,7 @@ Can be used to get the distribution of Pacbio Reads.
 ## Usage
 
 ````
-  python plotReadLengths.py -f [sequences.fasta] -b [numberOfBins] -g [estimatedGenomeSize] -o [outputDirectory]
+  python plotReadLengths.py -f [sequences.fasta] -b [binGranularity] -g [estimatedGenomeSize] -o [outputDirectory]
 ````
 
 ````
@@ -19,7 +19,7 @@ Can be used to get the distribution of Pacbio Reads.
           -l: a length file, is created by this script. Can be used to run the script again more quickly.
                   /!\ If both -f and -l are specified, -l will have the priority.
           -g: the estimated genome size, will be used to compute the coverage. Optional
-          -b: the number of bins on the plot. Default: 20
+          -b: bin size based on the percentage of the longest sequence. Default: 5
   Output:
           -o: the output director. Default to ./
   Other:
@@ -41,7 +41,9 @@ Example with -b 20
 ## Trying different bin sizes
 
 After the first run, a file called <sequence.fasta>\_lengthsFile.txt is created. This file can be inputed to the script to avoid the computation of the sequences length.
+```
   python plotReadLengths.py -g <genomeSize> -l <sequences.fasta_lengthsFile.txt> -o <outputDir> -b <binSize in percentage of the longest read>
+```
 
 ## TO DO
 
