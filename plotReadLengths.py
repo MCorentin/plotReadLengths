@@ -62,7 +62,23 @@ def get_coverage(readLengths, expectedGenomeSize, verbose):
 	return(cov)
 
 
-def create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbose):
+def get_N50(readLengths):
+	"""
+	Compute and return the N50 from lengths
+	"""
+	sorted_length = sorted(readLengths, reverse = True)
+	total_len = sum(readLengths)
+
+	sum_len = 0
+	index = 0
+	while(sum_len <= total_len/2):
+		sum_len = sum_len + sorted_length[index]
+		index = index + 1
+	# Index - 1 to get the sequence that actually managed to achieve N50
+	return(sorted_length[index-1])
+
+
+def create_plot_lengths(bins, N50, expectedGenomeSize, readLengths, outputName, verbose):
 	"""
 	Create the plot object
 	"""
@@ -70,7 +86,6 @@ def create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbo
 	plt.figure(figsize=(15,8), facecolor='white')
 
 	plt.xlim([0, max(readLengths)+1])
-	#plt.xticks(bins)
 	plt.xlabel('Read Length')
 	plt.ylabel('Number of Reads')
 
@@ -79,9 +94,9 @@ def create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbo
 	#  Get coverage as a string to print in the graph's title
 	if(expectedGenomeSize != None):
 		cov = get_coverage(readLengths, expectedGenomeSize, verbose)
-		plt.title(" Coverage: " + str(cov) + " X (for genome size of " + str(expectedGenomeSize) + " bp)", fontsize = 12)
+		plt.title(" Coverage: " + str(cov) + "x (for genome size of " + str(expectedGenomeSize) + " bp)", fontsize = 12)
 		
-	plt.suptitle("Read Length Distribution for " + outputName, fontsize = 14)
+	plt.suptitle("Read Length Distribution for " + outputName + " (N50 = " + str(N50) + " bp)", fontsize = 14)
 
 	return(plt)
 
@@ -177,9 +192,10 @@ readLengths = filter(None, readLengths)
 readLengths = list(map(int, readLengths))
 
 maxRead = max(readLengths)
+N50 = get_N50(readLengths)
 if(verbose == 1):
 	print("Longest Read = " + str(maxRead))
-
+	print("N50 = " + str(N50))
 # Bin size is percent% of Longest Read:
 # Allows for the same bin size for each distributions
 p = percent / (100 * 1.0)
@@ -195,7 +211,7 @@ if(verbose == 1):
 	print("Bin size = " + str(binSize))
 bins = np.arange(0, maxRead+1, binSize)
 
-plt = create_plot_lengths(bins, expectedGenomeSize, readLengths, outputName, verbose)
+plt = create_plot_lengths(bins, N50, expectedGenomeSize, readLengths, outputName, verbose)
 
 # Saving file to pdf
 GraphFile = outputDir + "/" + outputName + "_readLengths.pdf"
