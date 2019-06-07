@@ -5,7 +5,30 @@ The histogram will be saved as a file and also displayed on the screen.
 
 ## Motivation
 
-Can be used to get the distribution of Pacbio Reads.
+Plot the distribution of the sequence length present in a fasta file. The main use cases are:
+- To get the distribution of Pacbio reads.
+- To get the distribution contig lengths in an assembly.
+
+The N50 of the sequences is also calculated and added to the plot title.
+
+If a genome size is given (-g / --genomeEstimate option), then the coverage is also estimated.
+
+## Dependencies
+
+plotReadLengths is supported on Linux.
+
+You will need to have the following dependencies:
+
+**Note**: The following python packages are already built-in from python2.7 and do not need to be installed:
+```
+getopt
+sys
+os 
+```
+
+- **Python v2 or v3**
+- **The following python packages:** [numpy](http://www.numpy.org/ "Numpy Homepage"), [biopython](https://biopython.org/ "biopython Homepage"), [matplotlib.pyplot](https://matplotlib.org/ "Matplotlib Homepage"), getopt, sys, os.
+
 
 ## Usage
 
@@ -49,3 +72,4 @@ After the first run, a file called <sequence.fasta>\_lengthsFile.txt is created.
 
  - Allow more than one fasta at a time
  - Add some plot personalization (color, size, format...)
+ - Add support for fastq files

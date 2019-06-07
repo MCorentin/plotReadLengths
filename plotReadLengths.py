@@ -4,8 +4,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 import getopt
 import sys
-from subprocess import call, Popen, PIPE
 import os
+
+from Bio import SeqIO
 
 # Variable initialisation
 outputDir = './'
@@ -39,18 +40,17 @@ def usage():
 
 def get_lengths_from_fasta(fasta, verbose):
 	"""
-	Use awk to get the sequence lengths in a fasta file
+	Use biopython to get the sequence lengths in a fasta file
 	"""
-	cmd = ["awk", '/^>/ {if (seqlen){print seqlen};seqlen=0;next; } { seqlen += length($0)}END{print seqlen}', fasta]
 	if(verbose == 1):
-		print("Calculating the sequences length for the fasta...")
-		print(" ".join(cmd))
-	awk_process = Popen(cmd, shell = False, stdout=PIPE)
-	lengths = awk_process.communicate()[0]
-	# Popen is outputing bytes, so we use "decode()" to change it to string
-	lengths_decoded = lengths.decode()
-	return(lengths_decoded)
-
+	 	print("Calculating the sequences length distribution in the fasta...")
+    
+	lengths = []
+	fasta_handle = SeqIO.parse(fasta, "fasta")
+	for record in fasta_handle:
+		lengths.append(len(record.seq))
+	
+	return(lengths)
 
 def get_coverage(readLengths, expectedGenomeSize, verbose):
 	"""
@@ -104,7 +104,7 @@ def create_plot_lengths(bins, N50, expectedGenomeSize, readLengths, outputName, 
 
 
 #===================================
-#	 			Main
+#	 	Checking parameters
 #===================================
 # Getting the parameters from getopt
 try:
@@ -133,7 +133,7 @@ for o, a in opts:
 	else:
 		assert False, "unhandled option"
 
-
+# Sanity checks for the input files
 if(fasta == None and lengthsFile == None):
 	print("Please provide either a fasta file as input (option -f / --fasta) or a lengthsFile (option -l / --lengthsFile)\n")
 	usage()
@@ -161,16 +161,20 @@ else:
 		usage()
 		sys.exit()
 
+
+#===================================
+#	 			Main
+#===================================
 # If there is no file with lengths available, we use the fasta (slower)
 if lengthsFile == None:
-	lengths_decoded = get_lengths_from_fasta(fasta, verbose)
+	seqLengths = get_lengths_from_fasta(fasta, verbose)
 
 	# Create the lengths file for potential future runs
 	filename = outputDir + "/" + os.path.basename(fasta) + "_lengthsFile.txt"
 	if(verbose == 1):
 		print("Writing lengths to: " + filename + "...")
 	with open(filename, "w") as len_file_writer:
-		len_file_writer.write(lengths_decoded)
+		len_file_writer.write(str(seqLengths))
 		if(verbose == 1):
 			print("Done\n")
 
@@ -180,19 +184,18 @@ if lengthsFile == None:
 else:
 	with open(lengthsFile, 'r') as length_file_reader:
     		lengths_decoded = length_file_reader.read()
-
+	seqLengths = lengths_decoded.split("\n")
 	outputName = os.path.basename(lengthsFile)
 
 
-readLengths = lengths_decoded.split("\n")
 # Filter the empty ones if there are any
-readLengths = filter(None, readLengths)
+seqLengths = filter(None, seqLengths)
 # Transform the lengths from string to int
 # in python3 map return a generator, so we convert to "list" to avoid issues with matplotlib
-readLengths = list(map(int, readLengths))
+seqLengths = list(map(int, seqLengths))
 
-maxRead = max(readLengths)
-N50 = get_N50(readLengths)
+maxRead = max(seqLengths)
+N50 = get_N50(seqLengths)
 if(verbose == 1):
 	print("Longest Read = " + str(maxRead))
 	print("N50 = " + str(N50))
@@ -211,10 +214,10 @@ if(verbose == 1):
 	print("Bin size = " + str(binSize))
 bins = np.arange(0, maxRead+1, binSize)
 
-plt = create_plot_lengths(bins, N50, expectedGenomeSize, readLengths, outputName, verbose)
+plt = create_plot_lengths(bins, N50, expectedGenomeSize, seqLengths, outputName, verbose)
 
 # Saving file to pdf
-GraphFile = outputDir + "/" + outputName + "_readLengths.pdf"
+GraphFile = outputDir + "/" + outputName + "_seqLengths.pdf"
 plt.savefig(GraphFile, bbox_inches='tight')
 
 print("Graph saved to " + GraphFile)
