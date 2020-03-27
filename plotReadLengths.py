@@ -56,7 +56,7 @@ def get_coverage(readLengths, expectedGenomeSize, verbose):
 	"""
 	Return the coverage from readLengths and expectedGenomeSize
 	"""
-	cov = int(sum(readLengths) / expectedGenomeSize)
+	cov = round(sum(readLengths) / expectedGenomeSize)
 	if(verbose == 1):
 		print("Coverage " + str(cov) + " X")
 	return(cov)
